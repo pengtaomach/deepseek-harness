@@ -11,6 +11,8 @@
 | `dsh --profile <name>` | 启动位于 `$DSH_HOME/profiles/<name>` 的指定 profile。 |
 | `dsh --profile headless "job"` | 运行一个全新的持久化会话，打印最终答案并退出。 |
 | `dsh web` | `--profile web` 的别名。 |
+| `dsh web start [--port <n>] [--log-dir <dir>]` | 在后台分离运行 web profile，输出持续追加到日志（默认目录 `$DSH_HOME/logs`）。 |
+| `dsh web stop` / `dsh web restart` / `dsh web status` | 停止、重启或查看后台运行的 web 服务器。 |
 | `dsh plugin --profile <name> <pnpm args>` | 通过在 profile 目录中转发给 pnpm 来管理该 profile 的插件。 |
 
 运行命令时所在的目录将作为默认 workspace 根目录。`web` 和 `headless` profile 在首次使用时会从随附模板自动初始化；其他任何 profile 都必须通过 `dsh plugin` 创建。

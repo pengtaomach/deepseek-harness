@@ -140,6 +140,10 @@
     "demo:acp": "node --import tsx packages/examples/acp-demo/src/bin.ts --config examples/acp-agent/cordis.yml",
     "mock:llm": "node --import tsx packages/test-support/llm-mock-server/src/bin.ts",
     "dev:web": "tsx scripts/dev-web.ts --poll",
+    "web:start": "node --import tsx/esm apps/cli/src/bin.ts web start",
+    "web:stop": "node --import tsx/esm apps/cli/src/bin.ts web stop",
+    "web:restart": "node --import tsx/esm apps/cli/src/bin.ts web restart",
+    "web:status": "node --import tsx/esm apps/cli/src/bin.ts web status",
     "postinstall": "node scripts/install-lefthook.mjs"
   },
   "devDependencies": {

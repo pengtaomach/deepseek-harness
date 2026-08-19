@@ -34,6 +34,10 @@ pnpm run build
 pnpm dsh web
 ```
 
+### 后台运行
+
+`dsh web start` 会以分离的后台进程启动 Web UI；`dsh web status`、`dsh web restart`、`dsh web stop` 分别用于查看、重启与停止。运行日志追加写入 `$DSH_HOME/logs/dsh-web.log`，pid 文件位于同目录，可用 `--log-dir` 一并重定位。从源码 checkout 启动前请先执行 `pnpm run build`：后台服务器运行的是编译后的 CLI，而非 `.ts` 源码。
+
 ## 社区与支持
 
 - 欢迎通过 [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions) 提交反馈或 bug 报告。

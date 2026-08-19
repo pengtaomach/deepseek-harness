@@ -11,11 +11,15 @@
  * and `dsh --profile web -h` prints the web app's help, not this one's.
  *
  * `web` is a hardcoded alias for `--profile web`; `plugin` manages a profile's
- * plugin dependencies by forwarding to pnpm.
+ * plugin dependencies by forwarding to pnpm. `dsh web start|stop|restart|status`
+ * manage a background web server instead of booting in the foreground — the
+ * action tokens now route to the daemon subcommands rather than reaching the
+ * web app as positional arguments.
  * @module @deepseek-ai/dsh/args
  */
 
 import { Command, CommanderError } from 'commander'
+import type { WebDaemonAction } from './web-daemon.ts'
 
 /** Boot a named profile and hand it the invocation's inner arguments. */
 interface ProfileInvocation {
@@ -44,8 +48,18 @@ interface PluginInvocation {
   args: string[]
 }
 
+/** Manage the background web server (`dsh web start|stop|restart|status`). */
+interface WebDaemonInvocation {
+  mode: 'web-daemon'
+  action: WebDaemonAction
+  /** `--port` value, validated by the daemon runner; absent keeps the composed default. */
+  port?: string
+  /** `--log-dir` override; defaults to `$DSH_HOME/logs`. */
+  logDir?: string
+}
+
 /** The resolved `dsh` invocation. Help, version, and errors exit inside {@link parseDshArgs}. */
-export type DshInvocation = ProfileInvocation | DumpConfigInvocation | PluginInvocation
+export type DshInvocation = ProfileInvocation | DumpConfigInvocation | PluginInvocation | WebDaemonInvocation
 
 /** Launcher flags shared by the default command and the `web` alias. */
 interface BootOptions {
@@ -68,6 +82,8 @@ Examples:
   dsh --profile tui --patch ./extra.yml      boot a custom profile with one extra overlay
   dsh --profile tui --resume <session>       arguments after the launcher flags reach the app
   dsh --profile web --help                   the web app's own flags and help
+  dsh web start --port 3080                  serve the web GUI in the background
+  dsh web stop                               stop the background web GUI
   dsh plugin --profile tui add <package>     install a plugin into the tui profile
 `
 
@@ -167,6 +183,28 @@ export function parseDshArgs(argv: readonly string[], version: string): DshInvoc
       rejectParentOptions('web')
       resolved = resolveBoot(web, 'web', options, args)
     })
+
+  /** Wire one daemon subcommand: `dsh web <action>`. */
+  const registerDaemon = (action: WebDaemonAction, description: string, takesPort: boolean): void => {
+    const command = web.command(action).description(description)
+    if (takesPort) {
+      command
+        .option('--port <n>', 'listen port; the composed default applies when absent')
+        .option('--log-dir <dir>', 'directory for the server log and pid file; defaults to $DSH_HOME/logs')
+    }
+    command.action((options: { port?: string; logDir?: string } = {}) => {
+      rejectParentOptions(`web ${action}`)
+      resolved = {
+        mode: 'web-daemon', action,
+        ...options.port === undefined ? {} : { port: options.port },
+        ...options.logDir === undefined ? {} : { logDir: options.logDir },
+      }
+    })
+  }
+  registerDaemon('start', 'serve the web profile in the background', true)
+  registerDaemon('stop', 'stop the background web server', false)
+  registerDaemon('restart', 'restart the background web server', true)
+  registerDaemon('status', 'show whether the background web server is running', false)
 
   const plugin = program.command('plugin').description('manage a profile\'s plugins by forwarding the remaining arguments to pnpm in the profile directory')
   plugin

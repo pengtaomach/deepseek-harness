@@ -34,6 +34,10 @@ pnpm run build
 pnpm dsh web
 ```
 
+### Run in the background
+
+`dsh web start` serves the Web UI as a detached background process; `dsh web status`, `dsh web restart`, and `dsh web stop` inspect, restart, and stop it. Output appends to `$DSH_HOME/logs/dsh-web.log`, with the pid file beside it; `--log-dir` relocates both. Run `pnpm run build` before starting from a source checkout: the background server runs the compiled CLI, not the `.ts` sources.
+
 ## Community and support
 
 - Feel free to submit feedback or bug reports through [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions).

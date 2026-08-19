@@ -57,6 +57,31 @@ describe('parseDshArgs', () => {
       .toEqual({ mode: 'plugin', profile: 'tui', args: ['add', '--save-dev', 'x'] })
   })
 
+  it('routes the web daemon commands, keeping pass-through for real web arguments', () => {
+    expect(parse(['web', 'start'])).toEqual({ mode: 'web-daemon', action: 'start' })
+    expect(parse(['web', 'start', '--port', '3081']))
+      .toEqual({ mode: 'web-daemon', action: 'start', port: '3081' })
+    expect(parse(['web', 'start', '--port', '3081', '--log-dir', '/tmp/x']))
+      .toEqual({ mode: 'web-daemon', action: 'start', port: '3081', logDir: '/tmp/x' })
+    expect(parse(['web', 'stop'])).toEqual({ mode: 'web-daemon', action: 'stop' })
+    expect(parse(['web', 'restart', '--port', '3080']))
+      .toEqual({ mode: 'web-daemon', action: 'restart', port: '3080' })
+    expect(parse(['web', 'status'])).toEqual({ mode: 'web-daemon', action: 'status' })
+    // Anything else still reaches the web app verbatim.
+    expect(parse(['web', '--port', '3081']))
+      .toEqual({ mode: 'profile', profile: 'web', patches: [], args: ['--port', '3081'] })
+    expect(parse(['web', 'serve']))
+      .toEqual({ mode: 'profile', profile: 'web', patches: [], args: ['serve'] })
+  })
+
+  it('rejects daemon commands carrying launcher or stray options', () => {
+    expect(exitCode(['web', 'start', '--patch', 'a.yml'])).toBe(1)
+    expect(exitCode(['web', 'stop', '--port', '3081'])).toBe(1)
+    // The generic --profile form has no daemon: its arguments stay app-owned.
+    expect(parse(['--profile', 'web', 'start']))
+      .toEqual({ mode: 'profile', profile: 'web', patches: [], args: ['start'] })
+  })
+
   it('routes profile and web config dumps', () => {
     expect(parse(['--profile', 'web', '--dump-config']))
       .toEqual({ mode: 'dump-config', profile: 'web', defaultOnly: false, patches: [] })
