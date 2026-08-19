@@ -34,6 +34,8 @@ export interface WebSearchSettings {
   apiKeyEnv?: string
   /** Provider endpoint; blank inherits the provider default. */
   baseURL?: string
+  /** Anthropic-format model used for search requests. */
+  model?: string
   /** Maximum searches served within one request. */
   maxUses?: number
 }
@@ -52,6 +54,8 @@ interface CredentialState {
 export interface WebSearchCardState extends CardShell {
   /** Provider endpoint. */
   baseURL: CardFieldState
+  /** Model the search request runs on. */
+  model: CardFieldState
   /** Searches allowed per request. */
   maxUses: CardFieldState
   /** The staged credential, which starts blank on every load. */
@@ -86,7 +90,7 @@ export class WebSearchCardController {
   ) {
     this.form = new CardForm(
       scope,
-      [textField('baseURL'), numberField('maxUses')],
+      [textField('baseURL'), textField('model'), numberField('maxUses')],
       [{ field: API_KEY_FIELD, write: text => this.writeKey(text) }],
     )
     this.store = this.form.bind(() => this.projection())
@@ -98,6 +102,7 @@ export class WebSearchCardController {
     return {
       ...this.form.shell(),
       baseURL: this.form.field('baseURL'),
+      model: this.form.field('model'),
       maxUses: this.form.field('maxUses'),
       apiKey: this.form.field(API_KEY_FIELD),
       apiKeyConfigured: this.credential.configured,

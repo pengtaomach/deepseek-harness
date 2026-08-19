@@ -388,11 +388,12 @@ describe('WebSearchCardController', () => {
     const state = () => controller.inject().hooks.webSearchCard.getSnapshot()
     await vi.waitFor(() => { expect(credentials.describe).toHaveBeenCalled() })
 
-    host.publish({ status: 'ready', writable: true, value: { baseURL: 'https://search.test/v1' }, user: {} })
+    host.publish({ status: 'ready', writable: true, value: { baseURL: 'https://search.test/v1', model: 'deepseek-v4-pro' }, user: {} })
     await vi.waitFor(() => { expect(state().apiKeyConfigured).toBe(true) })
 
     expect(state()).toMatchObject({
       baseURL: { text: 'https://search.test/v1', overridden: false },
+      model: { text: 'deepseek-v4-pro', overridden: false },
       apiKey: { text: '', overridden: false },
     })
   })
@@ -522,7 +523,7 @@ describe('WebSearchCardController', () => {
     expect(controller.inject().hooks.webSearchCard.getSnapshot().apiKeyConfigured).toBe(false)
   })
 
-  it('saves the endpoint and the search budget together', async () => {
+  it('saves the endpoint, the model, and the search budget together', async () => {
     const host = stubSettingsScope<WebSearchSettings>()
     acceptWrites(host)
     const credentials = credentialsApi(true)
@@ -531,11 +532,16 @@ describe('WebSearchCardController', () => {
     const face = controller.inject()
 
     face.edit('baseURL', 'https://other.test')
+    face.edit('model', 'deepseek-v4-pro')
     face.edit('maxUses', '3')
     face.save()
-    await vi.waitFor(() => { expect(host.set).toHaveBeenCalledTimes(2) })
+    await vi.waitFor(() => { expect(host.set).toHaveBeenCalledTimes(3) })
 
-    expect(host.set.mock.calls).toEqual([['baseURL', 'https://other.test'], ['maxUses', 3]])
+    expect(host.set.mock.calls).toEqual([
+      ['baseURL', 'https://other.test'],
+      ['model', 'deepseek-v4-pro'],
+      ['maxUses', 3],
+    ])
     expect(credentials.set).not.toHaveBeenCalled()
   })
 })

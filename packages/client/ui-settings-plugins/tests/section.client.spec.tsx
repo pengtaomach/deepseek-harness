@@ -354,6 +354,7 @@ describe('WebSearchCard', () => {
     const store = createSnapshotStore<WebSearchCardState>({
       ...settled,
       baseURL: field(''),
+      model: field('deepseek-v4-flash'),
       maxUses: field('5'),
       apiKey: field(''),
       apiKeyConfigured: false,
@@ -397,23 +398,26 @@ describe('WebSearchCard', () => {
     expect(screen.getByLabelText(en.webSearchBaseUrl)).toHaveProperty('disabled', false)
   })
 
-  it('stages the endpoint, the search budget, and their resets', () => {
+  it('stages the endpoint, the model, the search budget, and their resets', () => {
     const actions = renderWebSearch({
       baseURL: field('https://search.test/v1', { overridden: true }),
+      model: field('deepseek-v4-pro', { overridden: true }),
       maxUses: field('3', { overridden: true }),
     })
     fireEvent.click(screen.getByText(en.webSearchTitle))
 
     fireEvent.change(screen.getByLabelText(en.webSearchBaseUrl), { target: { value: 'https://other.test' } })
+    fireEvent.change(screen.getByLabelText(en.webSearchModel), { target: { value: 'deepseek-v4-lite' } })
     fireEvent.change(screen.getByLabelText(en.webSearchMaxUses), { target: { value: '4' } })
     const resets = screen.getAllByRole('button', { name: en.reset })
-    expect(resets).toHaveLength(2)
+    expect(resets).toHaveLength(3)
     for (const reset of resets) fireEvent.click(reset)
 
     expect(actions.edit.mock.calls).toEqual([
       ['baseURL', 'https://other.test'],
+      ['model', 'deepseek-v4-lite'],
       ['maxUses', '4'],
     ])
-    expect(actions.resetField.mock.calls).toEqual([['baseURL'], ['maxUses']])
+    expect(actions.resetField.mock.calls).toEqual([['baseURL'], ['model'], ['maxUses']])
   })
 })

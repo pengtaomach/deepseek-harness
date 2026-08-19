@@ -22,6 +22,8 @@ Saving writes each staged field through the client settings scope, which fences 
 
 A key can also be written from another surface — the Models page addresses the same reference — which changes no settings section, so the card re-reads on the forwarded `credentials/updated` event for the reference it watches.
 
+The DeepSeek search card edits the provider's endpoint, the model its search request runs on, and the per-request search budget; emptying a text field saves as a clear, so the field re-inherits the deployment's composed default.
+
 A field's presence in the raw user layer — not its value — is what marks it overridden; a reset clears that field so it re-inherits the composition layer. Secret-role fields never ride a response, so a key control starts blank, reports only whether one is configured, and writes through the credentials domain rather than the settings section; a blank draft writes nothing and keeps the stored key.
 
 ## Model Experience

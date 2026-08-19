@@ -10,7 +10,8 @@ export type PluginsSettingsLocaleKey =
   | 'agentLoopTitle' | 'agentLoopDescription' | 'agentLoopMaxParallel' | 'agentLoopMaxParallelHint'
   | 'webSearchTitle' | 'webSearchDescription'
   | 'webSearchApiKey' | 'webSearchApiKeyHint' | 'webSearchApiKeySet' | 'webSearchApiKeyUnset'
-  | 'webSearchBaseUrl' | 'webSearchBaseUrlHint' | 'webSearchMaxUses' | 'webSearchMaxUsesHint'
+  | 'webSearchBaseUrl' | 'webSearchBaseUrlHint' | 'webSearchModel' | 'webSearchModelHint'
+  | 'webSearchMaxUses' | 'webSearchMaxUsesHint'
 
 /** English copy. */
 export const en: Record<PluginsSettingsLocaleKey, string> = {
@@ -49,6 +50,8 @@ export const en: Record<PluginsSettingsLocaleKey, string> = {
   webSearchApiKeyUnset: 'No key is configured; search is unavailable until one is.',
   webSearchBaseUrl: 'Endpoint',
   webSearchBaseUrlHint: 'Leave blank to use the provider default.',
+  webSearchModel: 'Model',
+  webSearchModelHint: 'Leave blank to use the provider default.',
   webSearchMaxUses: 'Max searches per request',
   webSearchMaxUsesHint: 'How many times one request may search before it must answer.',
 }
@@ -90,6 +93,8 @@ export const zh: Record<PluginsSettingsLocaleKey, string> = {
   webSearchApiKeyUnset: '未配置密钥；配置之前搜索不可用。',
   webSearchBaseUrl: '接口地址',
   webSearchBaseUrlHint: '留空则使用提供方默认地址。',
+  webSearchModel: '搜索模型',
+  webSearchModelHint: '留空则使用提供方默认模型。',
   webSearchMaxUses: '单次请求最多搜索次数',
   webSearchMaxUsesHint: '一次请求在必须作答前最多可以搜索多少次。',
 }
