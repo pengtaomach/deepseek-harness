@@ -11,6 +11,8 @@ This package owns the Service Definition role of the web capability. Unlike shel
 | `@deepseek-ai/dsh-web` (this) | Service Definition: the service, provider registries, selection policy, request/result vocabulary, the `WebError` taxonomy |
 | `@deepseek-ai/dsh-web-search-exa` | Search provider: Exa |
 | `@deepseek-ai/dsh-web-search-perplexity` | Search provider: Perplexity |
+| `@deepseek-ai/dsh-web-search-deepseek` | Search provider: native DeepSeek web search |
+| `@deepseek-ai/dsh-web-search-ppio` | Search provider: PPIO proxy `/web-search` |
 | `@deepseek-ai/dsh-web-fetch-http` | Fetch provider: anonymous public HTTP(S) |
 | `@deepseek-ai/dsh-tool-web` | Consumer: the model-facing `web_search` / `web_fetch` tool schemas over `ctx.web` |
 
@@ -28,7 +30,7 @@ Providers register **capabilities**, not tools. `dsh-tool-web` is the only owner
 
 ## Selection
 
-Selection never depends on registration, config, or HMR order. A capability has an explicit provider id (config `searchProvider`/`fetchProvider`, or env `$DSH_WEB_SEARCH_PROVIDER`/`$DSH_WEB_FETCH_PROVIDER` feeding the same fields), or auto-selects when exactly one usable provider is registered. `search()`/`fetch()` resolve the provider at execution time:
+Selection never depends on registration, config, or HMR order. A capability has an explicit provider id (config `searchProvider`/`fetchProvider`, or env `$DSH_WEB_SEARCH_PROVIDER`/`$DSH_WEB_FETCH_PROVIDER` feeding the same fields), or auto-selects when exactly one usable provider is registered. The two fields also resolve from the `web` settings section, so a configuration surface can switch them without a restart. `search()`/`fetch()` resolve the provider at execution time:
 
 | Situation | Execution |
 |---|---|

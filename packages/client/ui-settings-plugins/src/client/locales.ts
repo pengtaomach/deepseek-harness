@@ -12,6 +12,9 @@ export type PluginsSettingsLocaleKey =
   | 'webSearchApiKey' | 'webSearchApiKeyHint' | 'webSearchApiKeySet' | 'webSearchApiKeyUnset'
   | 'webSearchBaseUrl' | 'webSearchBaseUrlHint' | 'webSearchModel' | 'webSearchModelHint'
   | 'webSearchMaxUses' | 'webSearchMaxUsesHint'
+  | 'webSearchPpioTitle' | 'webSearchPpioDescription'
+  | 'webTitle' | 'webDescription' | 'webSearchProvider' | 'webSearchProviderHint' | 'webSearchProviderAuto'
+  | 'webSearchAggregateDescription'
 
 /** English copy. */
 export const en: Record<PluginsSettingsLocaleKey, string> = {
@@ -54,6 +57,14 @@ export const en: Record<PluginsSettingsLocaleKey, string> = {
   webSearchModelHint: 'Leave blank to use the provider default.',
   webSearchMaxUses: 'Max searches per request',
   webSearchMaxUsesHint: 'How many times one request may search before it must answer.',
+  webSearchPpioTitle: 'PPIO search',
+  webSearchPpioDescription: 'The PPIO proxy search provider.',
+  webTitle: 'Web access',
+  webDescription: 'Which search provider serves web_search.',
+  webSearchProvider: 'Search provider',
+  webSearchProviderHint: 'Leave blank to auto-select the sole usable provider.',
+  webSearchProviderAuto: 'Auto',
+  webSearchAggregateDescription: 'Choose which provider serves web_search, then configure it.',
 }
 
 /** Simplified Chinese copy. */
@@ -97,4 +108,12 @@ export const zh: Record<PluginsSettingsLocaleKey, string> = {
   webSearchModelHint: '留空则使用提供方默认模型。',
   webSearchMaxUses: '单次请求最多搜索次数',
   webSearchMaxUsesHint: '一次请求在必须作答前最多可以搜索多少次。',
+  webSearchPpioTitle: 'PPIO 搜索',
+  webSearchPpioDescription: 'PPIO 代理搜索提供方。',
+  webTitle: '网页访问',
+  webDescription: '选择 web_search 使用的搜索提供方。',
+  webSearchProvider: '搜索提供方',
+  webSearchProviderHint: '留空表示自动使用唯一可用的提供方。',
+  webSearchProviderAuto: '自动',
+  webSearchAggregateDescription: '选择 web_search 使用的提供方，并配置它。',
 }

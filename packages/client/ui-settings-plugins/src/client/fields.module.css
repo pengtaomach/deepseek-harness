@@ -98,6 +98,17 @@
   border-color: var(--dsw-alias-label-error);
 }
 
+.select {
+  composes: input;
+  padding-right: 32px;
+  appearance: none;
+  cursor: pointer;
+}
+
+.select:disabled {
+  cursor: default;
+}
+
 .invalid {
   margin: 0;
   font-size: 12px;

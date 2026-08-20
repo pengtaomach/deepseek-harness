@@ -187,6 +187,18 @@ export class CardForm<T> {
   }
 
   /**
+   * Observe this form's publications. An aggregate form (one card editing
+   * several namespaces) subscribes once per member form and republishes its
+   * own combined store, instead of binding one store per member.
+   * @param listener - invoked after the scope or a draft changes.
+   * @returns a disposer that unsubscribes.
+   */
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener)
+    return () => { this.listeners.delete(listener) }
+  }
+
+  /**
    * Read the card-level state: what the Host serves, and what a save would do.
    * @returns the form state every card shares.
    */

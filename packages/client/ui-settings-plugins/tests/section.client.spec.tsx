@@ -17,13 +17,13 @@ import { ConfigurablePluginsTab } from '../src/client/ConfigurablePluginsTab.tsx
 import type { ConfigurablePluginsTabProps } from '../src/client/ConfigurablePluginsTab.tsx'
 import { PluginsSettingsSection } from '../src/client/PluginsSettingsSection.tsx'
 import type { PluginsSettingsSectionProps, PluginsSettingsTabEntry } from '../src/client/PluginsSettingsSection.tsx'
-import { WebSearchCard } from '../src/client/WebSearchCard.tsx'
-import type { WebSearchCardProps } from '../src/client/WebSearchCard.tsx'
+import { WebSearchAggregateCard } from '../src/client/WebSearchAggregateCard.tsx'
+import type { WebSearchAggregateCardProps } from '../src/client/WebSearchAggregateCard.tsx'
 import type { AgentLoopCardState } from '../src/client/agent-loop-card-controller.ts'
 import type { BashCardState } from '../src/client/bash-card-controller.ts'
 import type { CardFieldState, CardShell } from '../src/client/card-form.ts'
 import type { ConfigurablePluginsTabState } from '../src/client/tab-store.ts'
-import type { WebSearchCardState } from '../src/client/web-search-card-controller.ts'
+import type { WebSearchAggregateState } from '../src/client/web-search-aggregate-controller.ts'
 import { en } from '../src/client/locales.ts'
 
 afterEach(cleanup)
@@ -348,76 +348,74 @@ describe('AgentLoopCard', () => {
     expect(actions.resetField).toHaveBeenCalledWith('maxParallelToolCalls')
   })
 })
-
-describe('WebSearchCard', () => {
-  function renderWebSearch(state: Partial<WebSearchCardState> = {}) {
-    const store = createSnapshotStore<WebSearchCardState>({
+describe('WebSearchAggregateCard', () => {
+  function renderAggregate(state: Partial<WebSearchAggregateState> = {}) {
+    const store = createSnapshotStore<WebSearchAggregateState>({
       ...settled,
-      baseURL: field(''),
-      model: field('deepseek-v4-flash'),
-      maxUses: field('5'),
-      apiKey: field(''),
-      apiKeyConfigured: false,
-      apiKeyWritable: true,
+      provider: field(''),
+      deepseek: {
+        baseURL: field('https://api.deepseek.com/anthropic/v1'),
+        model: field('deepseek-v4-flash'),
+        maxUses: field('5'),
+        apiKey: field(''),
+        apiKeyConfigured: false,
+        apiKeyWritable: true,
+      },
+      ppio: {
+        baseURL: field('https://apiproxy.paigod.work/v1'),
+        model: field('ppio-tavily-search'),
+        apiKey: field(''),
+        apiKeyConfigured: false,
+        apiKeyWritable: true,
+      },
       ...state,
     })
     const actions = cardActions()
-    const props = { ...actions, t, useWebSearchCard: bindSnapshotSelector(store) } as unknown as WebSearchCardProps
-    render(<WebSearchCard {...props} />)
+    const props = { ...actions, t, useWebSearchAggregate: bindSnapshotSelector(store) } as unknown as WebSearchAggregateCardProps
+    render(<WebSearchAggregateCard {...props} />)
     return actions
   }
 
-  it('reports whether a key is configured without ever showing one', () => {
-    renderWebSearch({ apiKeyConfigured: true })
+  it('shows the DeepSeek controls (with the search budget) for the default provider', () => {
+    renderAggregate({ provider: field('deepseek-official') })
     fireEvent.click(screen.getByText(en.webSearchTitle))
 
-    expect(screen.getByText(en.webSearchApiKeySet)).toBeTruthy()
-    expect(screen.getByLabelText(en.webSearchApiKey)).toHaveProperty('type', 'password')
+    expect(screen.getByLabelText(en.webSearchBaseUrl)).toBeTruthy()
+    expect(screen.getByLabelText(en.webSearchModel)).toBeTruthy()
+    expect(screen.getByLabelText(en.webSearchMaxUses)).toBeTruthy()
+    expect(screen.getByLabelText(en.webSearchApiKey)).toBeTruthy()
   })
 
-  it('keeps the key control usable while the settings document is read-only', () => {
-    const actions = renderWebSearch({ writable: false })
+  it('swaps to the PPIO controls (no search budget) when the provider is PPIO', () => {
+    renderAggregate({ provider: field('ppio') })
     fireEvent.click(screen.getByText(en.webSearchTitle))
 
-    const key = screen.getByLabelText(en.webSearchApiKey)
-    expect(key).toHaveProperty('disabled', false)
-    expect(screen.getByLabelText(en.webSearchBaseUrl)).toHaveProperty('disabled', true)
-
-    fireEvent.change(key, { target: { value: 'ds-secret' } })
-
-    expect(actions.edit).toHaveBeenCalledWith('apiKey', 'ds-secret')
+    expect(screen.getByLabelText(en.webSearchBaseUrl)).toBeTruthy()
+    expect(screen.getByLabelText(en.webSearchModel)).toBeTruthy()
+    expect(screen.queryByLabelText(en.webSearchMaxUses)).toBeNull()
   })
 
-  it('disables the key control when the reference itself is not writable', () => {
-    // A key coming from the process environment: the settings document is
-    // writable, the credential is not.
-    renderWebSearch({ apiKeyConfigured: true, apiKeyWritable: false })
+  it('routes edits to the rendered provider with the composite field prefix', () => {
+    const actions = renderAggregate({ provider: field('ppio') })
     fireEvent.click(screen.getByText(en.webSearchTitle))
 
-    expect(screen.getByLabelText(en.webSearchApiKey)).toHaveProperty('disabled', true)
-    expect(screen.getByLabelText(en.webSearchBaseUrl)).toHaveProperty('disabled', false)
-  })
+    fireEvent.change(screen.getByLabelText(en.webSearchProvider), { target: { value: 'deepseek-official' } })
+    fireEvent.change(screen.getByLabelText(en.webSearchBaseUrl), { target: { value: 'https://x.test' } })
 
-  it('stages the endpoint, the model, the search budget, and their resets', () => {
-    const actions = renderWebSearch({
-      baseURL: field('https://search.test/v1', { overridden: true }),
-      model: field('deepseek-v4-pro', { overridden: true }),
-      maxUses: field('3', { overridden: true }),
-    })
-    fireEvent.click(screen.getByText(en.webSearchTitle))
-
-    fireEvent.change(screen.getByLabelText(en.webSearchBaseUrl), { target: { value: 'https://other.test' } })
-    fireEvent.change(screen.getByLabelText(en.webSearchModel), { target: { value: 'deepseek-v4-lite' } })
-    fireEvent.change(screen.getByLabelText(en.webSearchMaxUses), { target: { value: '4' } })
-    const resets = screen.getAllByRole('button', { name: en.reset })
-    expect(resets).toHaveLength(3)
-    for (const reset of resets) fireEvent.click(reset)
-
+    // The static store keeps the PPIO provider rendered, so the endpoint edit
+    // routes with the PPIO prefix; the provider select itself routes plainly.
     expect(actions.edit.mock.calls).toEqual([
-      ['baseURL', 'https://other.test'],
-      ['model', 'deepseek-v4-lite'],
-      ['maxUses', '4'],
+      ['searchProvider', 'deepseek-official'],
+      ['ppio.baseURL', 'https://x.test'],
     ])
-    expect(actions.resetField.mock.calls).toEqual([['baseURL'], ['model'], ['maxUses']])
+  })
+
+  it('routes the DeepSeek endpoint edit with the deepseek prefix', () => {
+    const actions = renderAggregate({ provider: field('deepseek-official') })
+    fireEvent.click(screen.getByText(en.webSearchTitle))
+
+    fireEvent.change(screen.getByLabelText(en.webSearchBaseUrl), { target: { value: 'https://x.test' } })
+
+    expect(actions.edit.mock.calls).toEqual([['deepseek.baseURL', 'https://x.test']])
   })
 })

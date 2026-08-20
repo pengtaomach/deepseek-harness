@@ -7,6 +7,7 @@
  */
 
 import { Context, Service } from '@deepseek-ai/cordis'
+import { installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'
 import z from '@deepseek-ai/schemastery'
 import type {
   WebFetchProvider,
@@ -37,6 +38,9 @@ declare module '@deepseek-ai/cordis' {
     web: WebRuntime
   }
 }
+
+/** Settings namespace carrying the seam's provider selection. */
+export const WEB_SETTINGS_NAMESPACE = settingsNamespace('web')
 
 /** Selection inputs for execution-time provider resolution. */
 interface Selection<P> {
@@ -84,13 +88,26 @@ export class WebRuntime extends Service {
 
   private searchProviders = new Map<string, WebSearchProvider>()
   private fetchProviders = new Map<string, WebFetchProvider>()
-  private readonly searchProviderId: string | undefined
-  private readonly fetchProviderId: string | undefined
+  private currentSearchProvider: () => string | undefined
+  private currentFetchProvider: () => string | undefined
 
   constructor(ctx: Context, config: WebRuntimeConfig = {}) {
     super(ctx, 'web')
-    this.searchProviderId = config.searchProvider ?? process.env.DSH_WEB_SEARCH_PROVIDER
-    this.fetchProviderId = config.fetchProvider ?? process.env.DSH_WEB_FETCH_PROVIDER
+    const initialSearch = config.searchProvider ?? process.env.DSH_WEB_SEARCH_PROVIDER
+    const initialFetch = config.fetchProvider ?? process.env.DSH_WEB_FETCH_PROVIDER
+    this.currentSearchProvider = () => initialSearch
+    this.currentFetchProvider = () => initialFetch
+    // The provider selection is a settings section, so a configuration surface
+    // can switch it without a restart. The section layers over the cordis entry
+    // (and the environment stays the fallback beneath both), read per execution
+    // so a committed change reaches the very next search or fetch.
+    installSettingsSection(ctx, WEB_SETTINGS_NAMESPACE, WebRuntime.Config, config, {
+      setSource: (source) => {
+        this.currentSearchProvider = () => source().searchProvider ?? process.env.DSH_WEB_SEARCH_PROVIDER
+        this.currentFetchProvider = () => source().fetchProvider ?? process.env.DSH_WEB_FETCH_PROVIDER
+      },
+      onChange: () => {},
+    })
   }
 
   /**
@@ -138,9 +155,10 @@ export class WebRuntime extends Service {
    * @returns the provider's results, capped to `request.maxResults`.
    */
   async search(request: WebSearchRequest, signal?: AbortSignal): Promise<WebSearchResult> {
+    const configuredId = this.currentSearchProvider()
     const provider = resolveProvider({
       providers: this.searchProviders,
-      ...this.searchProviderId !== undefined ? { configuredId: this.searchProviderId } : {},
+      ...configuredId !== undefined ? { configuredId } : {},
     })
     const result = await provider.search(request, signal)
     return capSources(result, request.maxResults)
@@ -155,9 +173,10 @@ export class WebRuntime extends Service {
    * @returns the retrieval outcome; non-2xx responses resolve descriptively.
    */
   async fetch(request: WebFetchRequest, signal?: AbortSignal): Promise<WebFetchResult> {
+    const configuredId = this.currentFetchProvider()
     const provider = resolveProvider({
       providers: this.fetchProviders,
-      ...this.fetchProviderId !== undefined ? { configuredId: this.fetchProviderId } : {},
+      ...configuredId !== undefined ? { configuredId } : {},
     })
     return provider.fetch(request, signal)
   }

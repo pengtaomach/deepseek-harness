@@ -11,6 +11,8 @@
 | `@deepseek-ai/dsh-web`（本包） | Service Definition：服务、提供方注册表、选择策略、请求／结果词汇、`WebError` 分类体系 |
 | `@deepseek-ai/dsh-web-search-exa` | 搜索提供方：Exa |
 | `@deepseek-ai/dsh-web-search-perplexity` | 搜索提供方：Perplexity |
+| `@deepseek-ai/dsh-web-search-deepseek` | 搜索提供方：DeepSeek 原生网页搜索 |
+| `@deepseek-ai/dsh-web-search-ppio` | 搜索提供方：PPIO 代理 `/web-search` |
 | `@deepseek-ai/dsh-web-fetch-http` | 抓取提供方：匿名公共 HTTP(S) |
 | `@deepseek-ai/dsh-tool-web` | Consumer：面向模型的 `web_search`／`web_fetch` 工具 schema，构建于 `ctx.web` 之上 |
 
@@ -28,7 +30,7 @@
 
 ## 选择
 
-选择绝不依赖注册、配置或 HMR（热模块替换）顺序。能力要么具有显式提供方 id（配置 `searchProvider`／`fetchProvider`，或由环境变量 `$DSH_WEB_SEARCH_PROVIDER`／`$DSH_WEB_FETCH_PROVIDER` 提供相同字段），要么在恰好只注册一个可用提供方时自动选择。`search()`／`fetch()` 会在执行时解析提供方：
+选择绝不依赖注册、配置或 HMR（热模块替换）顺序。能力要么具有显式提供方 id（配置 `searchProvider`／`fetchProvider`，或由环境变量 `$DSH_WEB_SEARCH_PROVIDER`／`$DSH_WEB_FETCH_PROVIDER` 提供相同字段），要么在恰好只注册一个可用提供方时自动选择。这两个字段也会从 `web` settings 分节解析，因此配置界面无需重启即可切换。`search()`／`fetch()` 会在执行时解析提供方：
 
 | 情况 | 执行 |
 |---|---|

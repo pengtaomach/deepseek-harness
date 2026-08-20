@@ -10,6 +10,9 @@ import { AgentLoopCardController, type AgentLoopSettings } from '../src/client/a
 import { BashCardController, type BashSettings } from '../src/client/bash-card-controller.ts'
 import { ConfigurablePluginsTabController } from '../src/client/tab-store.ts'
 import { WebSearchCardController, type WebSearchSettings } from '../src/client/web-search-card-controller.ts'
+import { WebSearchPpioCardController, type WebSearchPpioSettings } from '../src/client/web-search-ppio-card-controller.ts'
+import { WebCardController, type WebSettings } from '../src/client/web-card-controller.ts'
+import { WebSearchAggregateController } from '../src/client/web-search-aggregate-controller.ts'
 
 /** Make the stub behave like a Host that accepts every write. */
 function acceptWrites<T>(host: StubSettingsScope<T>): void {
@@ -25,10 +28,10 @@ function acceptWrites<T>(host: StubSettingsScope<T>): void {
   })
 }
 
-function credentialsApi(configured: boolean) {
+function credentialsApi(configured: boolean, ref = 'DEEPSEEK_API_KEY') {
   const describe = vi.fn(() => Promise.resolve({
     rpcId: 'c-1' as never,
-    result: { ok: true as const, value: { credentials: { DEEPSEEK_API_KEY: { configured, writable: true } } } },
+    result: { ok: true as const, value: { credentials: { [ref]: { configured, writable: true } } } },
   }))
   const set = vi.fn(() => Promise.resolve({ rpcId: 'c-2' as never, result: { ok: true as const, value: {} } }))
   return { api: { credentials: { describe, set } } as never, describe, set }
@@ -546,6 +549,64 @@ describe('WebSearchCardController', () => {
   })
 })
 
+describe('WebSearchPpioCardController', () => {
+  it('reads the credential state for the reference the tab names', async () => {
+    const host = stubSettingsScope<WebSearchPpioSettings>()
+    const credentials = credentialsApi(true, 'PPIO_API_KEY')
+    const controller = new WebSearchPpioCardController(host.scope, credentials.api)
+    const state = () => controller.inject().hooks.webSearchPpioCard.getSnapshot()
+    await vi.waitFor(() => { expect(credentials.describe).toHaveBeenCalled() })
+
+    host.publish({ status: 'ready', writable: true, value: { baseURL: 'https://search.test/v1', model: 'ppio-tavily-search' }, user: {} })
+    await vi.waitFor(() => { expect(state().apiKeyConfigured).toBe(true) })
+
+    expect(state()).toMatchObject({
+      baseURL: { text: 'https://search.test/v1', overridden: false },
+      model: { text: 'ppio-tavily-search', overridden: false },
+      apiKey: { text: '', overridden: false },
+    })
+  })
+
+  it('writes the staged key through the credentials domain, never the settings section', async () => {
+    const host = stubSettingsScope<WebSearchPpioSettings>()
+    const credentials = credentialsApi(false, 'PPIO_API_KEY')
+    const controller = new WebSearchPpioCardController(host.scope, credentials.api)
+    host.publish({ status: 'ready', writable: true, value: {}, user: {} })
+    const face = controller.inject()
+
+    face.edit('apiKey', 'ppio-secret')
+    expect(face.hooks.webSearchPpioCard.getSnapshot().dirty).toBe(true)
+    expect(credentials.set).not.toHaveBeenCalled()
+
+    credentials.describe.mockImplementation(() => Promise.resolve({
+      rpcId: 'c-1' as never,
+      result: { ok: true as const, value: { credentials: { PPIO_API_KEY: { configured: true, writable: true } } } },
+    }))
+    face.save()
+    await vi.waitFor(() => { expect(credentials.set).toHaveBeenCalled() })
+
+    expect(credentials.set).toHaveBeenCalledWith({ ref: 'PPIO_API_KEY', value: 'ppio-secret' })
+    expect(host.set).not.toHaveBeenCalled()
+  })
+
+  it('saves the endpoint and the model together', async () => {
+    const host = stubSettingsScope<WebSearchPpioSettings>()
+    acceptWrites(host)
+    const credentials = credentialsApi(true, 'PPIO_API_KEY')
+    const controller = new WebSearchPpioCardController(host.scope, credentials.api)
+    host.publish({ status: 'ready', writable: true, value: {}, base: {}, user: {} })
+    const face = controller.inject()
+
+    face.edit('baseURL', 'https://other.test')
+    face.edit('model', 'ppio-tavily-search')
+    face.save()
+    await vi.waitFor(() => { expect(host.set).toHaveBeenCalledTimes(2) })
+
+    expect(host.set.mock.calls).toEqual([['baseURL', 'https://other.test'], ['model', 'ppio-tavily-search']])
+    expect(credentials.set).not.toHaveBeenCalled()
+  })
+})
+
 describe('ConfigurablePluginsTabController', () => {
   function settingsApi(namespaces: string[]) {
     const describe = vi.fn(() => Promise.resolve({
@@ -671,5 +732,96 @@ describe('ConfigurablePluginsTabController', () => {
 
     expect(controller.inject().hooks.configurablePlugins.getSnapshot())
       .toEqual({ loaded: true, namespaces: [] })
+  })
+})
+
+describe('WebCardController', () => {
+  it('projects the selected provider and saves a change', async () => {
+    const host = stubSettingsScope<WebSettings>()
+    acceptWrites(host)
+    const controller = new WebCardController(host.scope)
+    host.publish({ status: 'ready', writable: true, value: { searchProvider: 'deepseek-official' }, base: {}, user: {} })
+    const face = controller.inject()
+
+    expect(face.hooks.webCard.getSnapshot().searchProvider.text).toBe('deepseek-official')
+
+    face.edit('searchProvider', 'ppio')
+    face.save()
+    await vi.waitFor(() => { expect(host.set).toHaveBeenCalled() })
+
+    expect(host.set.mock.calls).toEqual([['searchProvider', 'ppio']])
+  })
+
+  it('stages the empty value as a clear back to auto-select', async () => {
+    const host = stubSettingsScope<WebSettings>()
+    acceptWrites(host)
+    const controller = new WebCardController(host.scope)
+    host.publish({ status: 'ready', writable: true, value: { searchProvider: 'ppio' }, base: {}, user: { searchProvider: 'ppio' } })
+    const face = controller.inject()
+
+    face.edit('searchProvider', '')
+    face.save()
+    await vi.waitFor(() => { expect(host.unset).toHaveBeenCalled() })
+
+    expect(host.unset.mock.calls).toEqual([['searchProvider']])
+  })
+})
+
+describe('WebSearchAggregateController', () => {
+  function aggregate() {
+    const webHost = stubSettingsScope<WebSettings>()
+    const deepseekHost = stubSettingsScope<WebSearchSettings>()
+    const ppioHost = stubSettingsScope<WebSearchPpioSettings>()
+    const credentials = credentialsApi(true, 'DEEPSEEK_API_KEY')
+    const controller = new WebSearchAggregateController(
+      webHost.scope, deepseekHost.scope, ppioHost.scope, credentials.api,
+    )
+    webHost.publish({ status: 'ready', writable: true, value: { searchProvider: 'deepseek-official' }, base: {}, user: {} })
+    deepseekHost.publish({ status: 'ready', writable: true, value: { baseURL: 'https://ds.test' }, base: {}, user: {} })
+    ppioHost.publish({ status: 'ready', writable: true, value: { baseURL: 'https://ppio.test' }, base: {}, user: {} })
+    return { controller, webHost, deepseekHost, ppioHost, credentials }
+  }
+
+  it('combines the provider selection and both provider sections into one snapshot', async () => {
+    const { controller } = aggregate()
+    const state = controller.inject().hooks.webSearchAggregate.getSnapshot()
+
+    expect(state.provider.text).toBe('deepseek-official')
+    expect(state.deepseek.baseURL.text).toBe('https://ds.test')
+    expect(state.ppio.baseURL.text).toBe('https://ppio.test')
+    expect(state.available).toBe(true)
+  })
+
+  it('routes an edit through the composite field prefix to the owning scope', async () => {
+    const { controller, ppioHost } = aggregate()
+    acceptWrites(ppioHost)
+    const face = controller.inject()
+
+    face.edit('ppio.baseURL', 'https://ppio-other.test')
+    face.save()
+    await vi.waitFor(() => { expect(ppioHost.set).toHaveBeenCalled() })
+
+    expect(ppioHost.set.mock.calls).toEqual([['baseURL', 'https://ppio-other.test']])
+  })
+
+  it('routes the provider selection to the web scope', async () => {
+    const { controller, webHost } = aggregate()
+    acceptWrites(webHost)
+    const face = controller.inject()
+
+    face.edit('searchProvider', 'ppio')
+    face.save()
+    await vi.waitFor(() => { expect(webHost.set).toHaveBeenCalled() })
+
+    expect(webHost.set.mock.calls).toEqual([['searchProvider', 'ppio']])
+  })
+
+  it('is dirty when any member form holds an edit', () => {
+    const { controller } = aggregate()
+    const face = controller.inject()
+
+    face.edit('deepseek.model', 'deepseek-v4-pro')
+
+    expect(face.hooks.webSearchAggregate.getSnapshot().dirty).toBe(true)
   })
 })

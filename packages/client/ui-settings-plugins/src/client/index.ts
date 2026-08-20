@@ -4,7 +4,7 @@
  *
  * The section declares `settings.plugins.tab`; its own `configurable` tab then
  * declares `settings.plugin.item` and renders whatever cards were registered
- * into it. The three cards this package ships are the host-plane sections the
+ * into it. The cards this package ships are the host-plane sections the
  * deployment already exposes; each binds its namespace through the client
  * settings scope, which keeps them unaware of one another and of other tabs.
  */
@@ -25,11 +25,14 @@ import { BashCard } from './BashCard.tsx'
 import { ConfigurablePluginsTab } from './ConfigurablePluginsTab.tsx'
 import { PluginsSettingsSection } from './PluginsSettingsSection.tsx'
 import type { PluginsSettingsSectionInjected, PluginsSettingsTabEntry } from './PluginsSettingsSection.tsx'
-import { WebSearchCard } from './WebSearchCard.tsx'
+import { WebSearchAggregateCard } from './WebSearchAggregateCard.tsx'
 import { AGENT_LOOP_NS, AgentLoopCardController } from './agent-loop-card-controller.ts'
 import { SHELL_NS, BashCardController } from './bash-card-controller.ts'
 import { ConfigurablePluginsTabController } from './tab-store.ts'
-import { WEB_SEARCH_NS, WebSearchCardController } from './web-search-card-controller.ts'
+import { WEB_NS } from './web-card-controller.ts'
+import { WEB_SEARCH_NS } from './web-search-card-controller.ts'
+import { WEB_SEARCH_PPIO_NS } from './web-search-ppio-card-controller.ts'
+import { WebSearchAggregateController } from './web-search-aggregate-controller.ts'
 import { en, zh } from './locales.ts'
 
 export type { PluginsSettingsSectionInjected, PluginsSettingsSectionProps } from './PluginsSettingsSection.tsx'
@@ -44,6 +47,9 @@ export type {
 export type { AgentLoopCardFace, AgentLoopCardState } from './agent-loop-card-controller.ts'
 export type { BashCardFace, BashCardState } from './bash-card-controller.ts'
 export type { WebSearchCardFace, WebSearchCardState } from './web-search-card-controller.ts'
+export type { WebSearchPpioCardFace, WebSearchPpioCardState } from './web-search-ppio-card-controller.ts'
+export type { WebCardFace, WebCardState } from './web-card-controller.ts'
+export type { WebSearchAggregateFace, WebSearchAggregateState } from './web-search-aggregate-controller.ts'
 
 /** Dictionary namespace owned by this plugin. */
 const NS = 'settings.plugins'
@@ -62,7 +68,12 @@ export function apply(ctx: ClientContext): void {
 
   const bash = new BashCardController(ctx.settingsScope.bind({ namespace: SHELL_NS }))
   const agentLoop = new AgentLoopCardController(ctx.settingsScope.bind({ namespace: AGENT_LOOP_NS }))
-  const webSearch = new WebSearchCardController(ctx.settingsScope.bind({ namespace: WEB_SEARCH_NS }), api)
+  const webSearch = new WebSearchAggregateController(
+    ctx.settingsScope.bind({ namespace: WEB_NS }),
+    ctx.settingsScope.bind({ namespace: WEB_SEARCH_NS }),
+    ctx.settingsScope.bind({ namespace: WEB_SEARCH_PPIO_NS }),
+    api,
+  )
 
   // The credential a card reports is not part of any settings section, so its
   // scope publishes nothing when one is written. This is the only signal that
@@ -170,6 +181,6 @@ export function apply(ctx: ClientContext): void {
       key: WEB_SEARCH_NS,
       locale: NS,
       inject: () => webSearch.inject(),
-    }, WebSearchCard)
+    }, WebSearchAggregateCard)
   })
 }

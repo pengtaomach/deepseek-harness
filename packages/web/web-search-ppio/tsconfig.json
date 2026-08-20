@@ -9,6 +9,9 @@
   ],
   "references": [
     {
+      "path": "../../util/launch-environment"
+    },
+    {
       "path": "../../../vendor/cosmokit"
     },
     {
@@ -18,7 +21,10 @@
       "path": "../../../vendor/schemastery"
     },
     {
-      "path": "../../llm/llm"
+      "path": "../web"
+    },
+    {
+      "path": "../../credentials/credentials"
     },
     {
       "path": "../../settings/settings"
